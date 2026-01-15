@@ -1,8 +1,8 @@
 use minreq::URL;
 use regex::Regex;
+use std::fs::File;
 use std::io::Write;
 use std::{collections::HashMap, error, sync::LazyLock};
-use std::fs::File;
 
 static IMG_PATTERN: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r#"[^"]+/([^"]+\.(?:png|jpe?g|gif|bmp))"#).unwrap());
@@ -14,20 +14,24 @@ pub struct Spider {
     path: String,
     recursive: u64,
     urls_done: HashMap<URL, String>,
+    url_pattern: Regex,
 }
 
 impl Spider {
     pub fn new(base_url: String, path: String, recursive: u64) -> Self {
+        let pattern = format!(r#"href=["']({}.+?)['"]"#, regex::escape(&base_url));
         Spider {
             base_url,
             path,
             recursive,
             urls_done: HashMap::new(),
+            url_pattern: Regex::new(&pattern).unwrap(),
         }
     }
 
     pub fn start(&mut self) {
         self.fill_url(&self.base_url.clone());
+        println!("urls got: {:?}", self.urls_done.keys());
         self.urls_done
             .values()
             .for_each(|body| self.download_imgs(body));
@@ -41,10 +45,16 @@ impl Spider {
 
         let body = self
             .get_body_from_url(url)
-            .inspect_err(|e| eprintln!("Error for \"{}\": {e}", &self.base_url))
+            .inspect_err(|e| eprintln!("Error getting body from \"{}\": {e}", &self.base_url))
             .unwrap_or_default();
-
-        self.urls_done.insert(url.clone(), body);
+        self.urls_done.insert(url.clone(), body.clone());
+        self.url_pattern
+            .clone()
+            .captures_iter(&body)
+            .map(|capture| capture.extract())
+            .for_each(|(_, [link])| {
+                self.fill_url(&link.to_string());
+            });
     }
 
     /// Download all the img collected by regex from body into path
@@ -60,28 +70,28 @@ impl Spider {
                 };
                 let full_path = format!("{}/{}", self.path, name);
                 match self.get_bytes_from_url(&full_url) {
-                    Ok(bytes) =>
-                    {
+                    Ok(bytes) => {
                         println!("Got {}", full_url);
                         Some((bytes, full_path))
-                    },
-                    Err(err) =>
-                    {
-                        println!("Couldn't get {}: {}", full_url, err);
+                    }
+                    Err(err) => {
+                        println!("Error while getting the img {}: {}", full_url, err);
                         None
                     }
                 }
             })
-            .for_each(|(bytes, path)| {
-                match self.create_img(bytes, &path) {
-                    Ok(_) => { println!("{} Downloaded", path) },
-                    Err(err) => { println!("{} Failed: {}", path, err) },
+            .for_each(|(bytes, path)| match self.create_img(bytes, &path) {
+                Ok(_) => {
+                    println!("{} Downloaded", path)
+                }
+                Err(err) => {
+                    println!("{} Failed: {}", path, err)
                 }
             });
     }
-    
+
     fn create_img(&self, bytes: Vec<u8>, filename: &String) -> std::io::Result<()> {
-        let mut img = File::create(filename)?;
+        let mut img = File::create_new(filename)?;
         img.write_all(bytes.as_slice())?;
         img.sync_data()?;
         Ok(())
