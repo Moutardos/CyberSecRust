@@ -1,3 +1,5 @@
+#![warn(clippy::unwrap_used, clippy::all)]
+
 use crate::spider::Spider;
 use clap::Parser;
 use clap::{self, arg, Arg, Command};
