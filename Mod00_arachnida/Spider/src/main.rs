@@ -3,6 +3,7 @@ use clap::Parser;
 use clap::{self, arg, Arg, Command};
 use minreq::URL;
 use std::path::PathBuf;
+use url::Url;
 mod scraper;
 mod spider;
 
@@ -20,7 +21,15 @@ struct CliArgs {
 fn main() {
     let cliargs = CliArgs::parse();
     let len: u8 = if cliargs.recursive { cliargs.length } else { 0 };
-    let mut spider: Spider = Spider::new(&cliargs.url, &cliargs.path, len);
-    spider.start();
-    spider.download_all();
+    let base_url = Url::parse(&cliargs.url);
+    match base_url {
+        Ok(url) => {
+            let mut spider: Spider = Spider::new(&url, &cliargs.path, len);
+            spider.start();
+            spider.download_all();
+        }
+        Err(e) => {
+            eprintln!("{}", e);
+        }
+    }
 }

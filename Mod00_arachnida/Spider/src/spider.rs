@@ -1,16 +1,17 @@
 use minreq::URL;
 use regex::Regex;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
-use std::{collections::HashMap};
+use url::Url;
 
 use crate::scraper::Scraper;
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct Spider {
-    base_url: URL,
+    base_url: Url,
     path: String,
     recursive: u8,
     images_to_download: HashMap<Vec<u8>, PathBuf>,
@@ -18,8 +19,12 @@ pub struct Spider {
 }
 
 impl Spider {
-    pub fn new(base_url: &URL, path: &str, recursive: u8) -> Self {
-        let pattern = format!(r#"href=["']({}.+?)['"]"#, regex::escape(base_url));
+    pub fn new(base_url: &Url, path: &str, recursive: u8) -> Self {
+        let pattern = format!(
+            r#"href=["']({}.*?|\..*?)['"\?]"#,
+            regex::escape(base_url.as_str())
+        );
+
         Spider {
             base_url: base_url.clone(),
             path: path.to_string(),
@@ -33,7 +38,8 @@ impl Spider {
         let mut urls_done: HashMap<URL, String> = HashMap::new();
         self.start_filling_url_bodies(&mut urls_done, &self.base_url.clone());
         println!("urls got: {:?}", urls_done.keys());
-        urls_done.values().for_each(|body| {
+        urls_done.iter().for_each(|(key, body)| {
+            println!("ENTERING : {} ....:", key);
             self.images_to_download
                 .extend(Scraper::get_imgs(&self.base_url, body, &self.path))
         });
@@ -57,8 +63,8 @@ impl Spider {
             };
         }
     }
-    fn start_filling_url_bodies(&mut self, urls_done: &mut HashMap<URL, String>, url: &URL) {
-        self.filling_url_bodies(urls_done, url, 0);
+    fn start_filling_url_bodies(&mut self, urls_done: &mut HashMap<URL, String>, url: &Url) {
+        self.filling_url_bodies(urls_done, &url.to_string(), 0);
     }
 
     /// Fill the HashMap, attributing a body to the URL
@@ -68,16 +74,17 @@ impl Spider {
         }
 
         let body = Scraper::get_body_from_url(url)
-            .inspect_err(|e| eprintln!("Error getting body from \"{}\": {e}", &self.base_url))
+            .inspect_err(|e| eprintln!("Error getting body from \"{}\": {e}", url))
             .unwrap_or_default();
-
         urls_done.insert(url.clone(), body.clone());
         self.url_pattern
             .clone()
             .captures_iter(&body)
             .map(|capture| capture.extract())
             .for_each(|(_, [link])| {
-                self.filling_url_bodies(urls_done, &link.to_string(), depth + 1);
+                // if let Some() = link{link.strip_prefix('.')} else {link};
+                let full_url = link.strip_prefix('.').unwrap_or(link);
+                self.filling_url_bodies(urls_done, &full_url.to_string(), depth + 1);
             });
     }
 }
