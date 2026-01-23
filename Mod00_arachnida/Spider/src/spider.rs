@@ -4,14 +4,21 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
+use std::sync::LazyLock;
 use url::Url;
 
 use crate::scraper::Scraper;
+
+// static SLASH_URL_PATTERN: LazyLock<Regex> =
+//     LazyLock::new(|| Regex::new(r#"href=["']/.*?['"\?]"#).unwrap());
+
+
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct Spider {
     base_url: Url,
+    base_url_str: URL,
     path: String,
     recursive: u8,
     images_to_download: HashMap<Vec<u8>, PathBuf>,
@@ -21,12 +28,13 @@ pub struct Spider {
 impl Spider {
     pub fn new(base_url: &Url, path: &str, recursive: u8) -> Self {
         let pattern = format!(
-            r#"href=["']({}.*?|\..*?)['"\?]"#,
+            r#"href=["']({}.*?|\..*?|/.*?)['"\?]"#,
             regex::escape(base_url.as_str())
         );
 
         Spider {
             base_url: base_url.clone(),
+            base_url_str: base_url.to_string(),
             path: path.to_string(),
             recursive,
             images_to_download: HashMap::new(),
@@ -82,9 +90,17 @@ impl Spider {
             .captures_iter(&body)
             .map(|capture| capture.extract())
             .for_each(|(_, [link])| {
-                // if let Some() = link{link.strip_prefix('.')} else {link};
-                let full_url = link.strip_prefix('.').unwrap_or(link);
-                self.filling_url_bodies(urls_done, &full_url.to_string(), depth + 1);
+                let get_full_url = Scraper::add_base_url(&self.base_url, link);
+                match get_full_url {
+                    Ok(full_url) => {
+                        if full_url.contains(&self.base_url_str) {
+                            self.filling_url_bodies(urls_done, &full_url.to_string(), depth + 1);
+                        }
+                    }
+                    Err(err) => {
+                        eprintln!("{} {}",link, err)
+                    }
+                }
             });
     }
 }

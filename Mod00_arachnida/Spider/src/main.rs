@@ -2,9 +2,8 @@
 
 use crate::spider::Spider;
 use clap::Parser;
-use clap::{self, arg, Arg, Command};
+use clap::{self};
 use minreq::URL;
-use std::path::PathBuf;
 use url::Url;
 mod scraper;
 mod spider;
