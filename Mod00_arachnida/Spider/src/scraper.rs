@@ -25,7 +25,10 @@ impl Scraper {
             .captures_iter(body)
             .map(move |capture| capture.extract())
             .filter_map(move |(match_, [url, name])| {
-                println!("regex result: match {}\ngroup1: {}\ngroup2: {}",match_, url, name);
+                println!(
+                    "regex result: match {}\ngroup1: {}\ngroup2: {}",
+                    match_, url, name
+                );
                 let check_full_url = Scraper::add_base_url(base_url, url);
                 match check_full_url {
                     Ok(full_url) => {
@@ -63,13 +66,14 @@ impl Scraper {
     pub fn add_base_url(base_url: &Url, url: &str) -> Result<String, Box<dyn error::Error>> {
         if url.starts_with("//") {
             Ok(Url::parse((String::from(base_url.scheme()) + ":" + url).as_str())?.to_string())
-        } 
-        else if url.starts_with("/") {
+        } else if url.starts_with("/") {
             Ok((Url::parse(
                 (String::from(base_url.scheme()) + "://" + base_url.host_str().unwrap_or_default())
                     .as_str(),
             )?
-            .to_string() + &url[1..]).to_string())
+            .to_string()
+                + &url[1..])
+                .to_string())
         } else {
             let url_check = Url::parse(url)?;
             if url_check.cannot_be_a_base() {
@@ -83,9 +87,7 @@ impl Scraper {
         let response = minreq::get(url).send()?;
         if response.status_code >= 300 || response.as_str().is_ok() {
             Err("Bad request")?
-        }
-        else
-        {
+        } else {
             let result = response.as_bytes();
             Ok(Vec::from(result))
         }

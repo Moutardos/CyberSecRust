@@ -12,8 +12,6 @@ use crate::scraper::Scraper;
 // static SLASH_URL_PATTERN: LazyLock<Regex> =
 //     LazyLock::new(|| Regex::new(r#"href=["']/.*?['"\?]"#).unwrap());
 
-
-
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct Spider {
@@ -98,7 +96,7 @@ impl Spider {
                         }
                     }
                     Err(err) => {
-                        eprintln!("{} {}",link, err)
+                        eprintln!("{} {}", link, err)
                     }
                 }
             });
