@@ -43,7 +43,6 @@ impl Spider {
     pub fn start(&mut self) {
         let mut urls_done: HashMap<URL, String> = HashMap::new();
         self.start_filling_url_bodies(&mut urls_done, &self.base_url.clone());
-        println!("urls got: {:?}", urls_done.keys());
         urls_done.iter().for_each(|(key, body)| {
             println!("ENTERING : {} ....:", key);
             self.images_to_download
@@ -96,7 +95,6 @@ impl Spider {
                         }
                     }
                     Err(err) => {
-                        eprintln!("{} {}", link, err)
                     }
                 }
             });

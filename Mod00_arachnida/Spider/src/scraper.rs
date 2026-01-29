@@ -25,10 +25,6 @@ impl Scraper {
             .captures_iter(body)
             .map(move |capture| capture.extract())
             .filter_map(move |(match_, [url, name])| {
-                println!(
-                    "regex result: match {}\ngroup1: {}\ngroup2: {}",
-                    match_, url, name
-                );
                 let check_full_url = Scraper::add_base_url(base_url, url);
                 match check_full_url {
                     Ok(full_url) => {
