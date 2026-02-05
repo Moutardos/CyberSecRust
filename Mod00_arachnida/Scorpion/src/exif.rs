@@ -14,7 +14,6 @@ const BE_VALUE: u16 = 0x4D4D;
 // }
 #[derive(Debug)]
 pub struct ExifData {
-    size: usize,
     endian: Endianness,
     header: ExifHeader,
     ifds: Vec<ExifIFD>,
