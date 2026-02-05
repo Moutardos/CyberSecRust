@@ -8,8 +8,8 @@ use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 
+use crate::exif::endian_byte;
 use crate::exif::{BE_VALUE, ExifData, ExifField, ExifHeader, ExifIFD, LE_VALUE};
-use crate::exif::{endian_byte};
 impl ExifData {
     pub fn parse_from_raw(raw_data: &[u8]) -> IResult<&[u8], ExifData> {
         let (input, header) = ExifHeader::parse_header(raw_data)?;
@@ -34,8 +34,9 @@ impl ExifData {
 
 impl ExifHeader {
     fn parse_header(input: &[u8]) -> IResult<&[u8], ExifHeader> {
-        let (input, byte_order) = verify(be_u16, |value| *value == LE_VALUE || *value == BE_VALUE).parse(input)?;
-        let endian = endian_byte(byte_order).expect("Shouldn't happen, value is pre-validated"); 
+        let (input, byte_order) =
+            verify(be_u16, |value| *value == LE_VALUE || *value == BE_VALUE).parse(input)?;
+        let endian = endian_byte(byte_order).expect("Shouldn't happen, value is pre-validated");
         let parse_16 = &u16(endian);
         let parse_32 = &u32(endian);
         let (input, (version, ifd_offset)) = (parse_16, parse_32).parse(input)?;
@@ -82,7 +83,6 @@ impl ExifIFD {
 }
 
 impl ExifField {
-
     fn parse_field<'a>(raw_data: &'a [u8], endian: &Endianness) -> IResult<&'a [u8], ExifField> {
         let parse_16 = &u16(*endian);
         let parse_32 = &u32(*endian);

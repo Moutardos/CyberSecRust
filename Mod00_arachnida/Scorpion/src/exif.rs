@@ -41,12 +41,11 @@ pub struct ExifField {
 
 pub fn endian_byte(bytes: u16) -> Result<Endianness, Box<dyn error::Error>> {
     match bytes {
-        LE_VALUE =>  Ok(Endianness::Little),
+        LE_VALUE => Ok(Endianness::Little),
         BE_VALUE => Ok(Endianness::Big),
         _ => Err("Couldn't find byte order")?,
     }
 }
-
 
 pub mod exif_parser;
 pub mod exif_reader;
